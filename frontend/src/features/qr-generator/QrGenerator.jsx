@@ -1,71 +1,30 @@
-import {useState, useRef} from 'react';
-import {QRCodeSVG} from 'qrcode.react'
-import {jsPDF} from "jspdf";
+import {useState} from 'react';
 import {useDebounce} from '../../hooks/useDebounce.js';
+import {useQrCodeApi} from "../../hooks/useQrCodeApi.js";
+import {downloadSVG, downloadPDF} from '../../utils/downloader.js';
+import {handleShareLink} from '../../utils/share.js';
 import './QrGenerator.css';
 
 export function QrGenerator() {
     const [inputValue, setInputValue] = useState('');
-    const debouncedText = useDebounce(inputValue, 500);
-
     const [size, setSize] = useState(256);
     const [fgColor, setFgColor] = useState('#000000');
     const [bgColor, setBgColor] = useState('#ffffff');
 
-    const qrCodeRef = useRef(null);
+    const debouncedText = useDebounce(inputValue, 750);
 
-    const handleDownloadSVG = () => {
-        if (!qrCodeRef.current) return;
-
-        const svgElement = qrCodeRef.current.querySelector('svg');
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'qrcode.svg';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }
-
-    const handleDownloadPDF = () => {
-        if (!qrCodeRef.current) return;
-
-        const svgElement = qrCodeRef.current.querySelector('svg');
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-
-        canvas.width = size;
-        canvas.height = size;
-
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0);
-
-            const pngData = canvas.toDataURL('image/png');
-
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'px',
-                format: [size, size]
-            });
-
-            pdf.addImage(pngData, 'PNG', 0, 0, size, size);
-            pdf.save('qrcode.pdf');
-        };
-
-        const blob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
-        img.src = URL.createObjectURL(blob);
-    };
+    const {qrCodeSvg, isLoading, error} = useQrCodeApi({
+        value: debouncedText,
+        size,
+        fgColor,
+        bgColor
+    });
 
 
     return (
         <div className="qr-generator-wrapper">
             <h1>QR Code Generator</h1>
+
             <div className="input-group">
                 <input
                     type="text"
@@ -80,11 +39,7 @@ export function QrGenerator() {
                     <label>Size:</label>
                     <div className="size-selector">
                         {[128, 256, 512].map(s => (
-                            <button
-                                key={s}
-                                className={size === s ? 'active' : ''}
-                                onClick={() => setSize(s)}
-                            >
+                            <button key={s} className={size === s ? 'active' : ''} onClick={() => setSize(s)}>
                                 {s}px
                             </button>
                         ))}
@@ -92,42 +47,35 @@ export function QrGenerator() {
                 </div>
                 <div className="option-item">
                     <label htmlFor="fgColorPicker">QR Code Color:</label>
-                    <input
-                        id="fgColorPicker"
-                        type="color"
-                        value={fgColor}
-                        onChange={(e) => setFgColor(e.target.value)}
-                        className="color-picker"
-                    />
+                    <input id="fgColorPicker" type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)}
+                           className="color-picker"/>
                 </div>
                 <div className="option-item">
                     <label htmlFor="bgColorPicker">Back Color:</label>
-                    <input
-                        id="bgColorPicker"
-                        type="color"
-                        value={bgColor}
-                        onChange={(e) => setBgColor(e.target.value)}
-                        className="color-picker"
-                    />
+                    <input id="bgColorPicker" type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)}
+                           className="color-picker"/>
                 </div>
             </div>
 
-            {debouncedText && (
-                <div className="qr-code-display" ref={qrCodeRef}>
-                    <QRCodeSVG
-                        value={debouncedText}
-                        size={size}
-                        fgColor={fgColor}
-                        bgColor={bgColor}
-                        level={"L"}
+            <div className="qr-code-display">
+                {isLoading && <p>Loading...</p>}
+                {error && <p style={{color: 'red'}}>{error}</p>}
+                {!isLoading && !error && qrCodeSvg && (
+                    <div
+                        style={{width: size, height: size}}
+                        dangerouslySetInnerHTML={{__html: qrCodeSvg}}
                     />
-                </div>
-            )}
+                )}
+                {!isLoading && !error && !qrCodeSvg && !debouncedText && (
+                    <p>Enter text to generate a QR code.</p>
+                )}
+            </div>
 
-            {debouncedText && (
+            {!isLoading && qrCodeSvg && (
                 <div className="download-buttons">
-                    <button onClick={handleDownloadSVG}>Download SVG</button>
-                    <button onClick={handleDownloadPDF}>Download PDF</button>
+                    <button onClick={() => downloadSVG(qrCodeSvg)} disabled={!qrCodeSvg}>Download SVG</button>
+                    <button onClick={() => downloadPDF(qrCodeSvg, size)} disabled={!qrCodeSvg}>Download PDF</button>
+                    <button onClick={() => handleShareLink()} disabled={!qrCodeSvg}>Share Link</button>
                 </div>
             )}
         </div>

@@ -1,30 +1,23 @@
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 
 const qrCodeRoutes = require('./api/qrcode.routes');
-
 
 const app = express();
 
 app.use(cors());
+app.use(morgan('dev'));
 app.use(express.json());
 
-app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`);
-    next();
-});
+app.use('/api/qrCode', qrCodeRoutes);
 
-
-app.use('/', qrCodeRoutes);
-
-app.use((req, res) => {
-    res.status(404).json({message: 'The requested resource not found'});
-});
-
-app.use((err, req, res, _next) => {
+app.use((err, req, res) => {
     console.error(err.stack || err);
-    res.status(500).json({ message: 'Something went wrong on the server!' });
-});
 
+    res.status(500).json({
+        message: 'Something went wrong on the server'
+    });
+});
 
 module.exports = app;

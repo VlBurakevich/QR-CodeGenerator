@@ -1,14 +1,24 @@
 const qrcode = require('qrcode');
 
-const qrCodeService = {
-    async generate(text) {
+class QrCodeService {
+    async generate({value, size, fgColor, bgColor}) {
         try {
-            return await qrcode.toDataURL(text);
-        } catch (err) {
-            console.error('Underlying QR-code generation failed', err);
-            throw new Error('Failed to generate QR-code');
+            const options = {
+                width: size,
+                errorCorrectionLevel: 'H',
+                type: 'svg',
+                color: {
+                    dark: fgColor,
+                    light: bgColor
+                }
+            };
+
+            return await qrcode.toString(value, options);
+        } catch(err) {
+            console.error('Error during qrCode generation',err);
+            throw new Error('Failed to generate QR code');
         }
     }
 }
 
-module.exports = qrCodeService;
+module.exports = new QrCodeService();

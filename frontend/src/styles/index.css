@@ -2,14 +2,28 @@
     --bg-body: #242424;
     --bg-surface: #353535;
     --bg-input: #2e2e2e;
+
     --border-color: #505050;
     --border-focus: #3584e4;
+    --border-highlight: rgba(255, 255, 255, 0.05);
 
     --text-primary: #e0e0e0;
     --text-secondary: #b0b0b0;
+    --text-on-action: #ffffff;
 
     --btn-action-bg: #28a745;
     --btn-action-hover: #34c759;
+    --btn-action-disabled-bg: rgba(40, 167, 69, 0.4);
+    --btn-action-disabled-text: rgba(255, 255, 255, 0.5);
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow-focus: 0 0 0 3px rgba(53, 132, 228, 0.3);
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
 body {
@@ -23,5 +37,5 @@ body {
     color: var(--text-primary);
     display: flex;
     justify-content: center;
-    padding-top: 100px;
+    padding-top: 50px;
 }

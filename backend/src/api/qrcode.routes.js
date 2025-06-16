@@ -1,19 +1,21 @@
 const express = require('express');
-const qrCodeService = require('../service/qrcode.service');
+const QrCodeService = require('../service/qrcode.service');
 
 const router = express.Router();
 
 router.post('/generate', async (req, res, next) => {
     try {
-        const { text } = req.body;
+        const {value, size = 256, fgColor = '#000000', bgColor = '#ffffff'} = req.body;
 
-        if (!text) {
-            return res.status(400).json({error: 'text is required'});
+        if (!value) {
+            return res.status(400).json({error: 'Field value is required'});
         }
 
-        const qrCodeDataUrl = await qrCodeService.generate(text);
+        const options = {value, size, fgColor, bgColor};
 
-        res.json({qrCodeDataUrl});
+        const qrCodeSvg = await QrCodeService.generate(options);
+
+        res.json({qrCodeSvg});
     } catch (err) {
         next(err);
     }
