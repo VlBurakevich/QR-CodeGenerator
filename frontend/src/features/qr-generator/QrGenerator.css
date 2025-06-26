@@ -6,7 +6,7 @@
     border: 1px solid var(--border-highlight);
     text-align: center;
     width: 100%;
-    min-width: 700px;
+    min-width: 750px;
 }
 
 .qr-generator-wrapper h1 {
@@ -100,14 +100,14 @@
     display: inline-block;
 }
 
-.download-buttons {
+.actions-buttons {
     margin-top: 20px;
     display: flex;
     justify-content: center;
     gap: 15px;
 }
 
-.download-buttons button {
+.actions-buttons button {
     padding: 12px 20px;
     background-color: var(--btn-action-bg);
     color: var(--text-on-action);
@@ -118,12 +118,93 @@
     transition: background-color 0.3s;
 }
 
-.download-buttons button:hover:not(:disabled) {
+.actions-buttons button:hover:not(:disabled) {
     background-color: var(--btn-action-hover);
 }
 
-.download-buttons button:disabled {
+.actions-buttons button:disabled {
     background-color: var(--btn-action-disabled-bg);
     color: var(--btn-action-disabled-text);
     cursor: not-allowed;
+}
+
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    background-color: var(--bg-surface);
+    min-width: 120px;
+    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.3);
+    z-index: 1;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    margin-top: 5px;
+    overflow: hidden;
+}
+
+.dropdown-menu a {
+    color: var(--text-primary);
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.dropdown-menu a:hover {
+    background-color: var(--border-highlight);
+}
+
+.qr-code-display {
+    margin-bottom: 20px;
+}
+
+.save-section {
+    max-width: 400px;
+    margin: 0 auto 20px auto;
+    text-align: center;
+}
+
+.save-title-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 15px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.save-title-input:focus-visible {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: var(--shadow-focus);
+}
+
+.save-title-input:disabled {
+    background-color: #444;
+    cursor: not-allowed;
+}
+
+.save-status {
+    margin-top: 10px;
+    margin-bottom: 0;
+    font-size: 14px;
+    height: 1.2em;
+}
+
+.save-status.success {
+    color: var(--btn-action-bg);
+}
+
+.save-status.error {
+    color: #ff6b6b;
+}
+
+.actions-buttons button {
+    min-width: 140px;
 }

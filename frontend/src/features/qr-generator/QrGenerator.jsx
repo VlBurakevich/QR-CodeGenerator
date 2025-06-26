@@ -1,25 +1,71 @@
 import {useState} from 'react';
 import {useDebounce} from '../../hooks/useDebounce.js';
 import {useQrCodeApi} from "../../hooks/useQrCodeApi.js";
-import {downloadSVG, downloadPDF} from '../../utils/downloader.js';
+import {useClickOutside} from '../../hooks/useClickOutside.js';
+import {useQrHistory} from '../../context/QrHistoryContext.jsx';
+import {downloadSVG, downloadPDF, downloadPNG} from '../../utils/download.js';
 import {handleShareLink} from '../../utils/share.js';
 import './QrGenerator.css';
 
-export function QrGenerator() {
-    const [inputValue, setInputValue] = useState('');
-    const [size, setSize] = useState(256);
-    const [fgColor, setFgColor] = useState('#000000');
-    const [bgColor, setBgColor] = useState('#ffffff');
+export function QrGenerator({ activeQrData, onDataChange }) {
+    const [title, setTitle] = useState('');
+    const [saveStatus, setSaveStatus] = useState({message: '', type: ''});
 
-    const debouncedText = useDebounce(inputValue, 750);
+    const debouncedText = useDebounce(activeQrData.value, 750);
+    const {ref: dropdownRef, isVisible: isMenuOpen, setIsVisible: setMenuOpen} = useClickOutside(false);
 
     const {qrCodeSvg, isLoading, error} = useQrCodeApi({
         value: debouncedText,
-        size,
-        fgColor,
-        bgColor
+        size: activeQrData.size,
+        fgColor: activeQrData.fgColor,
+        bgColor: activeQrData.bgColor
     });
 
+    const {saveQrCodeItem, isSaving} = useQrHistory();
+
+    const onShareClick = async () => {
+        const result = await handleShareLink(debouncedText);
+
+        if (result.success && result.method === 'copy') {
+            setSaveStatus({ message: result.message, type: 'success' });
+            setTimeout(() => setSaveStatus({ message: '', type: '' }), 3000);
+        } else if (!result.success && result.message !== 'Share cancelled.') {
+            setSaveStatus({ message: result.message, type: 'error' });
+            setTimeout(() => setSaveStatus({ message: '', type: '' }), 3000);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!title.trim()) {
+            setSaveStatus({message: 'Please enter a title to save.', type: 'error'});
+            setTimeout(() => setSaveStatus({message: '', type: ''}), 3000);
+            return;
+        }
+
+        const qrData = {
+            title,
+            value: debouncedText,
+            size: activeQrData.size,
+            fgColor: activeQrData.fgColor,
+            bgColor: activeQrData.bgColor
+        };
+
+        const result = await saveQrCodeItem(qrData);
+
+        if (result.success) {
+            setSaveStatus({message: 'QR Code saved successfully!', type: 'success'});
+            setTitle('');
+        } else {
+            setSaveStatus({message: result.message, type: 'error'});
+        }
+
+        setTimeout(() => setSaveStatus({message: '', type: ''}), 3000);
+    };
+
+
+    const handleChange = (field, value) => {
+        onDataChange({ ...activeQrData, [field]: value });
+    };
 
     return (
         <div className="qr-generator-wrapper">
@@ -28,8 +74,8 @@ export function QrGenerator() {
             <div className="input-group">
                 <input
                     type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
+                    value={activeQrData.value}
+                    onChange={(e) => handleChange('value', e.target.value)}
                     placeholder="Enter text or URL"
                 />
             </div>
@@ -39,7 +85,9 @@ export function QrGenerator() {
                     <label>Size:</label>
                     <div className="size-selector">
                         {[128, 256, 512].map(s => (
-                            <button key={s} className={size === s ? 'active' : ''} onClick={() => setSize(s)}>
+                            <button key={s}
+                                    className={activeQrData.size === s ? 'active' : ''}
+                                    onClick={() => handleChange('size', s)}>
                                 {s}px
                             </button>
                         ))}
@@ -47,22 +95,25 @@ export function QrGenerator() {
                 </div>
                 <div className="option-item">
                     <label htmlFor="fgColorPicker">QR Code Color:</label>
-                    <input id="fgColorPicker" type="color" value={fgColor} onChange={(e) => setFgColor(e.target.value)}
+                    <input id="fgColorPicker" type="color" value={activeQrData.fgColor}
+                           onChange={(e) => handleChange('fgColor', e.target.value)}
                            className="color-picker"/>
                 </div>
                 <div className="option-item">
                     <label htmlFor="bgColorPicker">Back Color:</label>
-                    <input id="bgColorPicker" type="color" value={bgColor} onChange={(e) => setBgColor(e.target.value)}
+                    <input id="bgColorPicker" type="color" value={activeQrData.bgColor}
+                           onChange={(e) => handleChange('bgColor', e.target.value)}
                            className="color-picker"/>
                 </div>
             </div>
 
             <div className="qr-code-display">
-                {isLoading && <p>Loading...</p>}
-                {error && <p style={{color: 'red'}}>{error}</p>}
+                {isLoading && <p>Generating QR Code...</p>}
+                {error && <p style={{color: '#ff6b6b'}}>{error}</p>}
                 {!isLoading && !error && qrCodeSvg && (
                     <div
-                        style={{width: size, height: size}}
+                        aria-label="Generated QR Code"
+                        style={{width: activeQrData.size, height: activeQrData.size}}
                         dangerouslySetInnerHTML={{__html: qrCodeSvg}}
                     />
                 )}
@@ -72,11 +123,50 @@ export function QrGenerator() {
             </div>
 
             {!isLoading && qrCodeSvg && (
-                <div className="download-buttons">
-                    <button onClick={() => downloadSVG(qrCodeSvg)} disabled={!qrCodeSvg}>Download SVG</button>
-                    <button onClick={() => downloadPDF(qrCodeSvg, size)} disabled={!qrCodeSvg}>Download PDF</button>
-                    <button onClick={() => handleShareLink()} disabled={!qrCodeSvg}>Share Link</button>
-                </div>
+                <>
+                    <div className="save-section">
+                        <input
+                            type="text"
+                            className="save-title-input"
+                            placeholder="Enter a title to save..."
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            disabled={isSaving}
+                        />
+                        {saveStatus.message && (
+                            <p className={`save-status ${saveStatus.type}`}>
+                                {saveStatus.message}
+                            </p>
+                        )}
+                    </div>
+                    <div className="actions-buttons">
+                        <div className="dropdown-container" ref={dropdownRef}>
+                            <button onClick={() => setMenuOpen(!isMenuOpen)} disabled={!qrCodeSvg}>Download ▾</button>
+
+                            {isMenuOpen && (
+                                <div className="dropdown-menu">
+                                    <a onClick={() => {
+                                        downloadSVG(qrCodeSvg);
+                                        setMenuOpen(false);
+                                    }}>as SVG</a>
+                                    <a onClick={() => {
+                                        downloadPNG(qrCodeSvg, activeQrData.size);
+                                        setMenuOpen(false);
+                                    }}>as PNG</a>
+                                    <a onClick={() => {
+                                        downloadPDF(qrCodeSvg, activeQrData.size);
+                                        setMenuOpen(false);
+                                    }}>as PDF</a>
+                                </div>
+                            )}
+                        </div>
+                        <button onClick={onShareClick} disabled={!qrCodeSvg}>Share Link</button>
+
+                        <button onClick={handleSave} disabled={!qrCodeSvg || !title.trim() || isSaving}>
+                            {isSaving ? 'Saving...' : 'Save to History'}
+                        </button>
+                    </div>
+                </>
             )}
         </div>
     );

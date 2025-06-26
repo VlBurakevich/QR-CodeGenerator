@@ -37,5 +37,4 @@ body {
     color: var(--text-primary);
     display: flex;
     justify-content: center;
-    padding-top: 50px;
 }

@@ -1,6 +1,8 @@
 import {useState, useEffect} from 'react';
+import {generateQrCode} from '../api/apiClient.js';
+import axios from 'axios';
 
-export function useQrCodeApi({ value, size, fgColor, bgColor }) {
+export function useQrCodeApi({value, size, fgColor, bgColor}) {
     const [qrCodeSvg, setQrCodeSvg] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -9,48 +11,44 @@ export function useQrCodeApi({ value, size, fgColor, bgColor }) {
         if (!value) {
             setQrCodeSvg(null);
             setIsLoading(false);
+            setError(null);
             return;
         }
 
         const controller = new AbortController();
-        const {signal} = controller;
 
-        (async () => {
+        const fetchQrCode = async () => {
             setIsLoading(true);
             setError(null);
 
             try {
-                const response = await fetch('http://localhost:8080/api/qrCode/generate', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({value, size, fgColor, bgColor}),
-                    signal,
-                });
-
-                if (!response.ok) {
-                    setError('Failed to generate QR code (server error).');
-                    console.error('Server responded with status:', response.status);
+                const response = await generateQrCode(
+                    {value, size, fgColor, bgColor},
+                    {signal: controller.signal}
+                );
+                setQrCodeSvg(response.data.qrCodeSvg);
+            } catch (err) {
+                if (axios.isCancel(error)) {
+                    console.error('Request canceled:', err.message);
                     return;
                 }
 
-                const data = await response.json();
-                setQrCodeSvg(data.qrCodeSvg);
-
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    setError('Failed to generate QR code (network issue).');
-                    console.error(err);
-                }
+                console.error('Failed to generate qr code:', err);
+                const errorMessage = err.response?.data?.message || err.message || 'An unknown error occurred.';
+                setError(`Failed to generate qr code. (${errorMessage})`);
             } finally {
-                setIsLoading(false);
+                if (!controller.signal.aborted) {
+                    setIsLoading(false);
+                }
             }
-        })();
+        };
 
+        fetchQrCode();
 
         return () => {
             controller.abort();
         };
     }, [value, size, fgColor, bgColor]);
 
-    return { qrCodeSvg, isLoading, error };
+    return {qrCodeSvg, isLoading, error};
 }
