@@ -1,58 +1,57 @@
-import {useState} from 'react';
-import axios from 'axios';
-import './App.css';
+
+import { useState, useEffect } from 'react';
+import { QrGenerator } from './features/qr-generator/QrGenerator.jsx';
+import { QrHistorySidebar } from './features/hisotry/QrHistorySidebar.jsx';
+import { initializeSession } from './auth/sessionManager.js';
+import { QrHistoryProvider } from './context/QrHistoryContext.jsx';
+import './styles/App.css';
+import './features/hisotry/QrHistory.css';
 
 function App() {
-    const [text, setText] = useState('');
-    const [qrCode, setQrCode] = useState('');
-    const [error, setError] = useState('');
+    const [isInitialized, setIsInitialized] = useState(false);
 
-    const handleGenerateQrCode = async () => {
-        setQrCode('');
-        setError('');
+    const [activeQrData, setActiveQrData] = useState({
+        value: 'https://react.dev',
+        size: 256,
+        fgColor: '#000000',
+        bgColor: '#ffffff',
+    });
 
-        if (!text) {
-            setError('Please enter text or URL.');
-            return;
-        }
+    useEffect(() => {
+        const init = async () => {
+            await initializeSession();
+            setIsInitialized(true);
+        };
+        init();
+    }, []);
 
-        try {
-            const response = await axios.post('http://localhost:3001/generate', {
-                text: text,
-            });
-
-            setQrCode(response.data.qrCodeDataUrl);
-
-        } catch (err) {
-            setError('Failed to generate QR Code. Please try again.')
-            console.error(err);
-        }
+    const handleLoadQrFromHistory = (qrItem) => {
+        setActiveQrData({
+            value: qrItem.value,
+            size: qrItem.size,
+            fgColor: qrItem.fgColor,
+            bgColor: qrItem.bgColor,
+        });
     };
 
+    if (!isInitialized) {
+        return <div className="app-loader">Initializing...</div>;
+    }
 
     return (
-        <div className="App">
-            <h1>QR Code Generator</h1>
-            <div className="from">
-                <input
-                    type="text"
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="Enter text or URL"
-                />
-                <button onClick={handleGenerateQrCode}>Generate QR Code</button>
+        <QrHistoryProvider>
+            <div className="app-container">
+                <main className="app-main-layout">
+                    <QrHistorySidebar onSelectQrCode={handleLoadQrFromHistory} />
+                    <div className="main-content">
+                        <QrGenerator
+                            activeQrData={activeQrData}
+                            onDataChange={setActiveQrData}
+                        />
+                    </div>
+                </main>
             </div>
-            {/* Условный рендеринг, показываем только если есть ошибка */}
-            {error && <p className="error">{error}</p>}
-
-            {/* Уловный рендеринг, показываем только если QR-код был сгенерирован*/}
-            {qrCode && (
-                <div className="qr-code-container">
-                    <h2>Your QR Code:</h2>
-                    <img src={qrCode} alt='Generated QR Code'/>
-                </div>
-            )}
-        </div>
+        </QrHistoryProvider>
     );
 }
 

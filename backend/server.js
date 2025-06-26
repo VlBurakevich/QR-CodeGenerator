@@ -1,29 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const qrcode = require('qrcode');
+const app = require('./src/app.js')
 
-const app = express();
-const PORT = 3001
+const PORT = process.env.PORT || 8080
 
-app.use(cors());
-app.use(express.json());
-
-app.post('/generate', async (req, res) => {
-    const { text } = req.body;
-
-    if (!text) {
-        return res.status(400).json({ error: 'text is required' });
-    }
-    try {
-        const qrCodeDataUrl = await qrcode.toDataURL(text);
-
-        res.json({ qrCodeDataUrl });
-    } catch (err) {
-        console.error('Failed to generate QR code', err);
-        res.status(500).json({ error: 'Failed to generate QR code' });
-    }
+const server = app.listen(PORT, () => {
+    console.log(`Server is running on port:${PORT}`);
+    console.log(`Access is at http://localhost:${PORT}`);
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+server.on('error', (err) => {
+    console.error('Error on server', err);
 });

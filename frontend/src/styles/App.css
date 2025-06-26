@@ -1,0 +1,35 @@
+.app-container {
+    display: flex;
+    justify-content: center;
+}
+
+.app-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-size: 1.5rem;
+    color: #555;
+}
+
+.app-main-layout {
+    display: flex;
+    flex-direction: row-reverse;
+    height: 100vh;
+    width: 1200px;
+    max-width: 1800px;
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    gap: 2rem;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-y: auto;
+    min-width: 0;
+}
